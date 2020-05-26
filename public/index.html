@@ -1,0 +1,88 @@
+<html>
+<head>
+<script src="/prj2/socket.io/socket.io.js"></script>
+<script>
+  var nm = localStorage.name;
+  if(nm===undefined || nm==='undefined') nm = '';
+</script>
+</head>
+
+<body>
+<b>กระดาษทด</b><br>
+Command <input id='cmd'> ENTER
+Join <span style='padding:15; background-color:lightblue;'>j ชื่อ</span>
+Question <span style='padding:15; background-color:lightgreen;'>q คำถาม</span>
+Answer <span style='padding:15; background-color:lightgrey;'>a คำตอบ</span>
+<div id='users'></div>
+<div id='chalenge'></div>
+<div id='name'></div>
+
+</body>
+
+<script>
+  var chalenge = {};
+  var idnm = document.getElementById('name');
+  var idcl = document.getElementById('chalenge');
+  var idus = document.getElementById('users');
+  idnm.innerHTML = nm;
+  var cmd = document.getElementById('cmd');
+  var sk = io.connect('', { path : '/prj2/socket.io'});
+  sk.on('connect',function(){
+    if(nm!=='') {
+      req = 'join '+nm;
+      sk.emit('request', req); 
+    }
+  });
+  sk.on('chalenge', function(dt) {
+    chalenge = dt;
+    showChalenge();
+  });
+  sk.on('users', function(dt) {
+    //idus.innerHTML = JSON.stringify(dt);
+    idus.innerHTML += "<hr>";
+    idus.innerHTML = '==== ผู้เข้าร่วม ====';
+    for(var i=0; i<dt.length; i++) {
+      var us = dt[i];
+      idus.innerHTML += '<br>'+(i+1);
+      idus.innerHTML += ' '+us.name;
+      if(us.a!==undefined && us.a!=='') idus.innerHTML += ' a: '+us.a;
+      if(us.q!==undefined && us.q!=='') idus.innerHTML += ' q: '+us.q;
+      if(us.g!==undefined && us.g!=='') idus.innerHTML += ' g: '+us.g;
+      if(us.lead!==undefined) idus.innerHTML += ' '+(us.lead?'H':'');
+    }
+    idus.innerHTML += "<hr>";
+  });
+  cmd.addEventListener('keyup', function(e) {
+    if(e.keyCode==13) {
+      e.preventDefault();
+      request(cmd.value);
+      cmd.value = '';
+    }
+  });
+function showChalenge() {
+    //idcl.innerHTML = JSON.stringify(chalenge);
+}
+function request(req) {
+  if(req.startsWith('j')) {
+    if(req.length>2) {
+      nm = req.substring(2).trim();
+      idnm.innerHTML = nm;
+      localStorage.name = nm;
+      req = 'join '+nm;
+      sk.emit('request', req); 
+    } else if(nm!==''){
+      req = 'join '+nm;
+      sk.emit('request', req); 
+    }
+  } else if(req.startsWith('x ')) {
+    var n = parseInt(req.substring(2));
+    chalenge.nxt = n;
+    sk.emit('chalenge', chalenge);
+    showChalenge();
+  } else {
+    sk.emit('request', req); 
+  }
+}
+</script>
+</html>
+
